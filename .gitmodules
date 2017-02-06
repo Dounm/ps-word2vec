@@ -1,3 +1,6 @@
 [submodule "ps-lite"]
 	path = ps-lite
 	url = https://github.com/dmlc/ps-lite.git
+[submodule "dlog"]
+	path = dlog
+	url = git@github.com:Dounm/dlog.git
