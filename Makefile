@@ -20,7 +20,7 @@ CXXFLAGS = -g \
           -std=c++11
 INCPATH = -I./include \
         -I$(PSLITE_PATH)/include \
-        -I$(DLOG)/output/include \
+        -I$(DLOG_PATH)/output/include \
         -I$(BOOST_PATH)/boost
 LDFLAGS = $(PSLITE_PATH)/build/libps.a \
         -L$(PSLITE_PATH)/deps/lib \

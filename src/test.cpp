@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "ps/ps.h"
+#include "dlog.h"
 using namespace ps;
 
 void StartServer() {
@@ -57,6 +58,7 @@ void RunWorker() {
 }
 
 int main(int argc, char *argv[]) {
+    DLOG(INFO) << "Just for test";
   // setup server nodes
   StartServer();
   // start system
