@@ -2,3 +2,5 @@
 *.a
 *.pyc
 ig.*
+.*.swp
+output
