@@ -19,10 +19,10 @@
 
 namespace psw2v {
 
-static const double RAND_RANGE = 1e5;
+static const int RAND_RANGE = 1e5;
 
 inline float rand_01() {
-    return (rand() - RAND_RANGE) / RAND_RANGE;
+    return (rand() % RAND_RANGE) / RAND_RANGE;
 }
 
 }

@@ -15,6 +15,8 @@
 
 namespace psw2v {
 
+class Sample;
+
 class Word2Vec {
 public:
     Word2Vec(size_t iters, size_t batch_size,
@@ -30,6 +32,12 @@ public:
     
 private:
     DISALLOW_COPY_AND_ASSIGN(Word2Vec);
+
+    bool skip_high_freq_word(size_t word);
+    void train_single_batch(const std::vector<Sample>& batch);
+    void train_single_sample(const Sample& sample, 
+                        const std::unordered_map<size_t, std::vector<float> >& paras,
+                        std::unordered_map<size_t, std::vector<float> >* grads);
     
     size_t _iters;
     size_t _batch_size;
@@ -37,7 +45,7 @@ private:
     size_t _win_size;
     float _learning_rate;
 
-    std::vector<size_t> _word_ids;
+    std::vector<std::string> _words;
     std::vector<size_t> _word_freqs;
     std::vector<size_t> _negative;
 
