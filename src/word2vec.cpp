@@ -28,6 +28,39 @@
 
 namespace psw2v {
 
+inline void sum_vector(std::vector<float>* sum_vec, const std::vector<float>& vec) {
+    DCHECK(sum_vec->size() == vec.size()) << "[PSW2V] vecs to be added don't have same dims";
+    for (size_t i = 0; i < vec.size(); ++i) {
+        sum_vec->at(i) += vec[i];
+    }
+}
+
+inline std::vector<float> multi_vector(float x, const std::vector<float>& vec) {
+    std::vector<float> res(vec.size(), 0);
+    for (size_t i = 0; i < vec.size(); ++i) {
+        res[i] = x * vec[i];
+    }
+    return res;     // no need worry for overhead due to RVO
+}
+
+inline float dot(const std::vector<float>& vec1, const std::vector<float>& vec2) {
+    DCHECK(vec1.size() == vec2.size()) << "[PSW2V] vecs to be dot multiplied don't have same dims";
+    float res = 0;
+    for (size_t i = 0; i < vec1.size(); ++i) {
+        res += vec1[i] * vec2[i];
+    }
+    return res;
+}
+
+//TODO: reduce time of sigmoid() in the google source code way
+inline float sigmoid(float x) {
+    const float SIGMOID_MIN = -6.0; 
+    const float SIGMOID_MAX = 6.0;
+    if (x < SIGMOID_MIN) return -1.0;
+    if (x > SIGMOID_MAX) return 1.0;
+    return 1.0/(1.0+exp(0-x));
+}
+
 void Word2Vec::load_dict(const std::string& dict_path) {
     std::ifstream fin(dict_path.c_str());
     DCHECK(fin.good()) << "[PS-WORD2VEC] cannot open dict file: " << dict_path << std::endl;
@@ -183,19 +216,33 @@ void Word2Vec::train_single_batch(const std::vector<Sample>& batch) {
     }
     DCHECK(i == words_set.size()) << "[PSW2V] fail when setting origin paras to 'paras'";
 
-    //cal grad
+    // cal grads
     for (const auto& kv : paras) {
-        grad[kv.first] = std::vector<float>(_vec_dims, 0);
+        grads[kv.first] = std::vector<float>(_vec_dims, 0);
     }
-    for (const auto& sample : samples) {
-        train_single_sample(sample, paras, *grads);
+    DCHECK(grads.size() == words_set.size()) << "[PSW2V] fail when initializing 'grads'";
+    for (const auto& sample : batch) {
+        train_single_sample(sample, paras, &grads);
     }
+
+    // push grads
+    for (auto wordid : words_set) {
+        auto it = grads.find(wordid);
+        DCHECK(it != paras.end()) << "[PSW2V] cannot find the grads of wordid: " << wordid;
+        const auto& word_grads = it->second;
+
+        size_t start = wordid * _vec_dims;
+        for (size_t i = 0; i < _vec_dims; ++i) {
+            values[i+start] = word_grads.at(i);
+        }
+    }
+    _kv->Wait(_kv->Push(keys, values));
 }
 
 void Word2Vec::train_single_sample(const Sample& sample, 
         const std::unordered_map<size_t, std::vector<float> >& paras,
         std::unordered_map<size_t, std::vector<float> >* grads) {
-    float lambda = 1e-5;
+    // float lambda = 1e-5;
     size_t tword = sample.get_target();
     const auto& cwords = sample.get_contexts();
     
@@ -203,10 +250,40 @@ void Word2Vec::train_single_sample(const Sample& sample,
     DCHECK(it != paras.end()) << "[PSW2V] cannot find the paras of wordid: " << tword;
     const auto& tword_paras = it->second;
 
+    std::vector<float> x_w(_vec_dims, 0);
     for(auto cword : cwords) {
         it = paras.find(cword); 
         DCHECK(it != paras.end()) << "[PSW2V] cannot find the paras of wordid: " << cword;
+        const auto& cword_paras = it->second;
+        sum_vector(&x_w, cword_paras);
+    }
+
+    float pred = dot(x_w, tword_paras);
+    pred = sigmoid(pred);
+    float label = sample.get_label() ? 1 : 0 ;
+    float error = _learning_rate * (label - pred);
+
+    // update grad
+    auto it2 = grads->find(tword);
+    DCHECK(it2 != paras.end()) << "[PSW2V] cannot find the grads of wordid: " << tword;
+    auto& tword_grads = it2->second;
+
+    std::vector<float> e = multi_vector(error, tword_paras);    //e = e + g * \theta^u
+    auto tmp = multi_vector(error, x_w);
+    // sum_vector(&tword_grads, multi_vector(error, x_w));  // \theta^u = \theta^u + g * \theta^u
+    sum_vector(&tword_grads, tmp);  // \theta^u = \theta^u + g * \theta^u
+    for(auto cword : cwords) {
+        // auto it = paras.find(cword); 
+        // DCHECK(it != paras.end()) << "[PSW2V] cannot find the paras of wordid: " << cword;
+        // const auto& cword_paras = it->second;
+
+        auto it = grads->find(cword); 
+        DCHECK(it != grads->end()) << "[PSW2V] cannot find the grads of wordid: " << cword;
+        const auto& cword_grads = it->second;
+
+        sum_vector(&e, cword_grads);
     }
 }
+
 
 }
