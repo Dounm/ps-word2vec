@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
         srand(time(NULL));
         psw2v::Word2Vec model(50, 200, 128, 5, 0.005);
         model.load_dict("data/text8.dict");
+        //TODO: divide the train data equally
         model.train("data/train_data/text8.p" + std::to_string(rank));
     }
 
