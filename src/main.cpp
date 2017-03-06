@@ -29,8 +29,8 @@ int main(int argc, char **argv) {
         // std::this_thread::sleep_for(std::chrono::seconds(2));
         srand(time(NULL));
         psw2v::Word2Vec model(50, 200, 128, 5, 0.005);
-        model.load_dict("ig.data/text8.dict");
-        model.train("ig.data/train_data/text8.p" + std::to_string(rank));
+        model.load_dict("data/text8.dict");
+        model.train("data/train_data/text8.p" + std::to_string(rank));
     }
 
     ps::Finalize();
