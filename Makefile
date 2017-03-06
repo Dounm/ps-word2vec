@@ -22,11 +22,13 @@ INCPATH = -I./include \
         -I$(PSLITE_PATH)/include \
         -I$(DLOG_PATH)/output/include \
         -I$(BOOST_PATH)
-LDFLAGS = $(PSLITE_PATH)/build/libps.a \
+LDFLAGS = -Xlinker "-(" \
+        $(PSLITE_PATH)/build/libps.a \
         -L$(PSLITE_PATH)/deps/lib \
         -lprotobuf-lite -lzmq \
         $(DLOG_PATH)/output/lib/libdlog.a \
-        -pthread 
+        -pthread \
+        -Xlinker "-)"
 
 
 .PHONY: all clean debug run1 run3
@@ -35,7 +37,7 @@ all: $(TARGET)
 	@echo "make all done"
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
 
 output/%.o: src/%.cpp
 	@mkdir -p $(@D)
