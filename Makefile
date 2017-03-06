@@ -21,7 +21,7 @@ CXXFLAGS = -g \
 INCPATH = -I./include \
         -I$(PSLITE_PATH)/include \
         -I$(DLOG_PATH)/output/include \
-        -I$(BOOST_PATH)/boost
+        -I$(BOOST_PATH)
 LDFLAGS = $(PSLITE_PATH)/build/libps.a \
         -L$(PSLITE_PATH)/deps/lib \
         -lprotobuf-lite -lzmq \
@@ -29,7 +29,7 @@ LDFLAGS = $(PSLITE_PATH)/build/libps.a \
         -pthread 
 
 
-.PHONY: all clean debug
+.PHONY: all clean debug run1 run3
 
 all: $(TARGET)
 	@echo "make all done"
@@ -49,3 +49,9 @@ clean:
 debug:
 	$(CXX) -v
 	@echo $(OBJS)
+
+run3:
+	./local.sh 1 3 output/psw2v
+
+run1:
+	./local.sh 1 1 output/psw2v
