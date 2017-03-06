@@ -165,7 +165,10 @@ void Word2Vec::train(const std::string& data_path) {
             train_single_batch(single_batch);
         }
     }
-    save_model("psw2v.model");
+    if (ps::MyRank() == 0) {
+        //TODO: save model after all workers has training done
+        save_model("psw2v.model");
+    }
 }
 
 void Word2Vec::save_model(const std::string& out_path) {
