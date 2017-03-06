@@ -165,8 +165,27 @@ void Word2Vec::train(const std::string& data_path) {
             train_single_batch(single_batch);
         }
     }
+    save_model("psw2v.model");
 }
 
+void Word2Vec::save_model(const std::string& out_path) {
+    std::ofstream fout(out_path.c_str());
+    for (size_t wordid = 0;wordid < _words.size(); ++wordid) {
+        if (_word_freqs.at(wordid) < 5) continue;
+        std::vector<ps::Key> keys(_vec_dims, 0);
+        for (size_t j = 0;j < _vec_dims; ++j) {
+            keys[j] = j + wordid * _vec_dims;
+        }
+        std::vector<float> values;
+        _kv->Wait(_kv->Pull(keys, &values));
+        fout << wordid << '\t' << _words[wordid] << '\t';
+        for (auto value : values) {
+            fout << value << ' ';
+        }
+        fout << std::endl;
+    }
+}
+ 
 // private functions
 
 bool Word2Vec::skip_high_freq_word(size_t word) {
@@ -226,15 +245,15 @@ void Word2Vec::train_single_batch(const std::vector<Sample>& batch) {
     }
 
     // push grads
+    i = 0;
     for (auto wordid : words_set) {
         auto it = grads.find(wordid);
         DCHECK(it != paras.end()) << "[PSW2V] cannot find the grads of wordid: " << wordid;
         const auto& word_grads = it->second;
-
-        size_t start = wordid * _vec_dims;
-        for (size_t i = 0; i < _vec_dims; ++i) {
-            values[i+start] = word_grads.at(i);
+        for (size_t j = 0; j < _vec_dims; ++j) {
+            values.at(i*_vec_dims + j) = word_grads.at(j);
         }
+        i++;
     }
     _kv->Wait(_kv->Push(keys, values));
 }
@@ -270,20 +289,14 @@ void Word2Vec::train_single_sample(const Sample& sample,
 
     std::vector<float> e = multi_vector(error, tword_paras);    //e = e + g * \theta^u
     auto tmp = multi_vector(error, x_w);
-    // sum_vector(&tword_grads, multi_vector(error, x_w));  // \theta^u = \theta^u + g * \theta^u
-    sum_vector(&tword_grads, tmp);  // \theta^u = \theta^u + g * \theta^u
+    sum_vector(&tword_grads, tmp);  // \theta^u = \theta^u + g * X_w
     for(auto cword : cwords) {
-        // auto it = paras.find(cword); 
-        // DCHECK(it != paras.end()) << "[PSW2V] cannot find the paras of wordid: " << cword;
-        // const auto& cword_paras = it->second;
-
         auto it = grads->find(cword); 
         DCHECK(it != grads->end()) << "[PSW2V] cannot find the grads of wordid: " << cword;
-        const auto& cword_grads = it->second;
+        auto& cword_grads = it->second;
 
-        sum_vector(&e, cword_grads);
+        sum_vector(&cword_grads, e);    // v(u) = v(u) + e
     }
 }
-
 
 }

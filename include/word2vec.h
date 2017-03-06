@@ -28,6 +28,7 @@ public:
 
     void load_dict(const std::string& dict_path);
     void train(const std::string& data_path);
+    void save_model(const std::string& out_path);
 
     
 private:
